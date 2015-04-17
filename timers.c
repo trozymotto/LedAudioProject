@@ -9,15 +9,6 @@
 #include <avr/interrupt.h>
 
 // GLOBALS
-extern uint32_t G_green_ticks;
-extern uint32_t G_yellow_ticks;
-extern uint32_t G_ms_ticks;
-
-extern uint16_t G_red_period;
-extern uint16_t G_green_period;
-extern uint16_t G_yellow_period;
-
-extern uint16_t G_release_red;
 
 void init_timers() {
 
@@ -48,9 +39,6 @@ void init_timers() {
 	//Enable output compare match interrupt on timer 0A
     TIMSK0 = 0x02;
 
-	// Initialize counter
-	G_ms_ticks = 0;
-
 	//--------------------------- YELLOW ----------------------------------//
 	// Set-up of interrupt for toggling yellow LEDs. 
 	// This task is "self-scheduled" in that it runs inside the ISR that is 
@@ -74,7 +62,6 @@ void init_timers() {
 	//Enable output compare match interrupt on timer 3A
     TIMSK3 |= 0x02;
 
-	G_yellow_ticks = 0;
 /*
 	//--------------------------- GREEN ----------------------------------//
 	// Set-up of interrupt for toggling green LED. 
