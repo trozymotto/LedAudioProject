@@ -1,6 +1,7 @@
-#Ignore
+# Ignore #
 Makefile
 .xcworkspace
+/LedAudioProject.xcworkspace/*
 
 # OS generated files #
 ######################
