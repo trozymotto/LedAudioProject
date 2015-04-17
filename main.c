@@ -18,20 +18,6 @@
 void init_adc(void);
 
 // GLOBALS
-volatile uint32_t G_yellow_ticks = 0;
-volatile uint32_t G_ms_ticks = 0;
-
-volatile uint16_t G_red_period = 500;
-volatile uint16_t G_green_period = 500;
-volatile uint16_t G_yellow_period = 500;
-
-volatile uint16_t G_release_red = 0;
-
-volatile uint32_t G_red_toggles = 0;
-volatile uint32_t G_green_toggles = 0;
-volatile uint32_t G_yellow_toggles = 0;
-
-volatile uint8_t G_flag = 0; // generic flag for debugging
 char send_buffer[32];
 
 // ADC stuff
@@ -43,7 +29,7 @@ int main(void)
 {
 	// Initialization here.
 	lcd_init_printf();	// required if we want to use printf() for LCD printing
-	init_timers();
+	//init_timers();
 	init_menu();	// this is initialization of serial comm through USB
 	init_adc();
 	clear();	// clear the LCD
