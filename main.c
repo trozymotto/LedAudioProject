@@ -38,7 +38,7 @@ int main(void)
 	//enable interrupts
 	sei();
 	
-	start_analog_conversion(CHANNEL_A);  // start initial conversion
+	//start_analog_conversion(CHANNEL_A);  // start initial conversion
 	while (1) 
 	{
 	    if (printAdc)
@@ -85,10 +85,9 @@ void init_adc(void)
 }
 
 // INTERRUPT HANDLER for reading the ADC
-ISR(TIMER3_COMPA_vect) 
+ISR(TIMER0_COMPA_vect) 
 {
-    dataArray[samples] = analog_conversion_result();  // get result
-    start_analog_conversion(CHANNEL_A);   // start next conversion
+    dataArray[samples] = analog_read(0);//analog_conversion_result();  // get result
     if (samples >= ARRAY_LEN)           // if all samples have been taken...
     {
         printAdc = 1;

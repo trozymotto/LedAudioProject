@@ -38,7 +38,7 @@ void init_timers() {
 
 	//Enable output compare match interrupt on timer 0A
     TIMSK0 = 0x02;
-
+/*
 	//--------------------------- YELLOW ----------------------------------//
 	// Set-up of interrupt for toggling yellow LEDs. 
 	// This task is "self-scheduled" in that it runs inside the ISR that is 
@@ -61,7 +61,7 @@ void init_timers() {
 
 	//Enable output compare match interrupt on timer 3A
     TIMSK3 |= 0x02;
-
+*/
 /*
 	//--------------------------- GREEN ----------------------------------//
 	// Set-up of interrupt for toggling green LED. 
