@@ -16,13 +16,6 @@ void init_LEDs()
  
 // INTERRUPT Names are defined in iom1284p.h
 
-// INTERRUPT HANDLER for yellow LED
-ISR(TIMER3_COMPA_vect) 
-{
-
-
-}
-
 // INTERRUPT HANDLER for green LED
 ISR(TIMER1_COMPA_vect) 
 {

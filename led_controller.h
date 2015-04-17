@@ -14,10 +14,20 @@
 	PORTxn : drive pin hi or lo (when configured as output)
 	PINxn : receive data here (when configured as input)
 
-	LEDS should be on the following pins:
-		Yellow : PA0
-		Green  : PD5 OC1A
-		Red    : PA2
+Signal  Pin
+R1      A1
+G1      A3
+B1      A2
+R2      A4
+G2      A6
+B2      A5
+A       D1
+B       D0
+C       D2
+D       D3
+CLK     C0
+LAT     B4
+OE      C1
 
 */
 

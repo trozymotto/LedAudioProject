@@ -19,7 +19,8 @@ void init_adc(void);
 
 // GLOBALS
 char send_buffer[32];
-
+volatile int printAdc = 0;
+ 
 // ADC stuff
 #define ARRAY_LEN 100
 unsigned int dataArray[ARRAY_LEN];
@@ -40,15 +41,11 @@ int main(void)
 	start_analog_conversion(CHANNEL_A);  // start initial conversion
 	while (1) 
 	{
-	    if (!analog_is_converting())     // if conversion is done...
+	    if (printAdc)
         {
-          dataArray[samples] = analog_conversion_result();  // get result
-          start_analog_conversion(CHANNEL_A);   // start next conversion
-          if (++samples >= ARRAY_LEN)           // if 20 samples have been taken...
-          {
+            printAdc = 0;
             print_adc_vals();
             samples = 0;
-          }
         }
         serial_check();
 		check_for_new_bytes_received();
@@ -85,4 +82,19 @@ void print_adc_vals(void)
 void init_adc(void)
 {
     set_analog_mode(MODE_10_BIT);    // 8-bit analog-to-digital conversions
+}
+
+// INTERRUPT HANDLER for reading the ADC
+ISR(TIMER3_COMPA_vect) 
+{
+    dataArray[samples] = analog_conversion_result();  // get result
+    start_analog_conversion(CHANNEL_A);   // start next conversion
+    if (samples >= ARRAY_LEN)           // if all samples have been taken...
+    {
+        printAdc = 1;
+    }
+    else
+    {
+        samples++;
+    }
 }

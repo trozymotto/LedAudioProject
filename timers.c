@@ -75,7 +75,7 @@ void init_timers() {
     TIMSK3 |= 0x02;
 
 	G_yellow_ticks = 0;
-
+/*
 	//--------------------------- GREEN ----------------------------------//
 	// Set-up of interrupt for toggling green LED. 
 	// This "task" is implemented in hardware, because the OC1A pin will be toggled when 
@@ -112,7 +112,7 @@ void init_timers() {
 
 	//Enable output compare match interrupt on timer 1A
     TIMSK1 |= 0x02;
-
+*/
 
 }
 
