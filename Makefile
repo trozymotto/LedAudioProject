@@ -8,14 +8,14 @@ AVRDUDE_DEVICE ?= m168
 
 CFLAGS=-g -Wall -mcall-prologues -mmcu=$(MCU) $(DEVICE_SPECIFIC_CFLAGS) -Os
 CC=avr-gcc
-OBJ2HEX=avr-objcopy 
+OBJ2HEX=avr-objcopy
 LDFLAGS=-Wl,-gc-sections -lpololu_$(DEVICE) -Wl,-relax -Wl,-u,vfprintf -lprintf_flt -lm -Wl,-u,vfscanf -lscanf_flt -lm
 
 PORT ?= /dev/ttyACM0
 AVRDUDE=avrdude
 
 TARGET=main
-OBJECT_FILES=main.o led_controller.o timers.o menu.o
+OBJECT_FILES=main.o led_controller.o timers.o menu.o RGBmatrixPanel.o Adafruit_GFX.o
 
 all: $(TARGET).hex
 

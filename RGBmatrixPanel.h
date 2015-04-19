@@ -1,10 +1,12 @@
-#if ARDUINO >= 100
- #include "Arduino.h"
-#else
- #include "WProgram.h"
- #include "pins_arduino.h"
-#endif
+//#if ARDUINO >= 100
+ //#include "Arduino.h"
+//#else
+// #include "WProgram.h"
+// #include "pins_arduino.h"
+//#endif
 #include "Adafruit_GFX.h"
+
+#ifdef __cplusplus
 
 class RGBmatrixPanel : public Adafruit_GFX {
 
@@ -12,18 +14,18 @@ class RGBmatrixPanel : public Adafruit_GFX {
 
   // Constructor for 16x32 panel:
   RGBmatrixPanel(uint8_t a, uint8_t b, uint8_t c,
-    uint8_t sclk, uint8_t latch, uint8_t oe, boolean dbuf);
+    uint8_t sclk, uint8_t latch, uint8_t oe, bool dbuf);
 
   // Constructor for 32x32 panel (adds 'd' pin):
   RGBmatrixPanel(uint8_t a, uint8_t b, uint8_t c, uint8_t d,
-    uint8_t sclk, uint8_t latch, uint8_t oe, boolean dbuf, uint8_t width=32);
+    uint8_t sclk, uint8_t latch, uint8_t oe, bool dbuf, uint8_t width=32);
 
   void
     begin(void),
     drawPixel(int16_t x, int16_t y, uint16_t c),
     fillScreen(uint16_t c),
     updateDisplay(void),
-    swapBuffers(boolean),
+    swapBuffers(bool),
     dumpMatrix(void);
   uint8_t
     *backBuffer(void);
@@ -31,19 +33,19 @@ class RGBmatrixPanel : public Adafruit_GFX {
     Color333(uint8_t r, uint8_t g, uint8_t b),
     Color444(uint8_t r, uint8_t g, uint8_t b),
     Color888(uint8_t r, uint8_t g, uint8_t b),
-    Color888(uint8_t r, uint8_t g, uint8_t b, boolean gflag),
-    ColorHSV(long hue, uint8_t sat, uint8_t val, boolean gflag);
+    Color888(uint8_t r, uint8_t g, uint8_t b, bool gflag),
+    ColorHSV(long hue, uint8_t sat, uint8_t val, bool gflag);
 
  private:
 
   uint8_t         *matrixbuff[2];
   uint8_t          nRows;
   volatile uint8_t backindex;
-  volatile boolean swapflag;
+  volatile bool swapflag;
 
   // Init/alloc code common to both constructors:
   void init(uint8_t rows, uint8_t a, uint8_t b, uint8_t c,
-	    uint8_t sclk, uint8_t latch, uint8_t oe, boolean dbuf, 
+	    uint8_t sclk, uint8_t latch, uint8_t oe, bool dbuf,
 	    uint8_t width);
 
   // PORT register pointers, pin bitmasks, pin numbers:
@@ -57,4 +59,63 @@ class RGBmatrixPanel : public Adafruit_GFX {
   volatile uint8_t row, plane;
   volatile uint8_t *buffptr;
 };
+#else //__cplusplus
 
+ // Constructor for 32x32 panel (adds 'd' pin):
+// RGBmatrixPanel(uint8_t a, uint8_t b, uint8_t c, uint8_t d,
+//   uint8_t sclk, uint8_t latch, uint8_t oe, bool dbuf, uint8_t width=32);
+
+ void begin(void);
+ void drawPixel(int16_t x, int16_t y, uint16_t c);
+ void fillScreen(uint16_t c);
+ void updateDisplay(void);
+ void swapBuffers(bool);
+ void dumpMatrix(void);
+
+ uint8_t *backBuffer(void);
+
+ uint16_t Color333(uint8_t r, uint8_t g, uint8_t b);
+ uint16_t Color444(uint8_t r, uint8_t g, uint8_t b);
+ uint16_t Color888(uint8_t r, uint8_t g, uint8_t b);
+ uint16_t Color888_2(uint8_t r, uint8_t g, uint8_t b, bool gflag);
+ uint16_t ColorHSV(long hue, uint8_t sat, uint8_t val, bool gflag);
+
+ uint8_t         *matrixbuff[2];
+ uint8_t          nRows;
+ volatile uint8_t backindex;
+ volatile bool swapflag;
+
+ // Init/alloc code common to both constructors:
+ void init(uint8_t rows, uint8_t a, uint8_t b, uint8_t c, uint8_t d,
+     uint8_t sclk, uint8_t latch, uint8_t oe, bool dbuf,
+     uint8_t width);
+
+ // PORT register pointers, pin bitmasks, pin numbers:
+ volatile uint8_t *latport;
+ volatile uint8_t *oeport;
+ volatile uint8_t *addraport;
+ volatile uint8_t *addrbport;
+ volatile uint8_t *addrcport;
+ volatile uint8_t *addrdport;
+
+ uint8_t sclkpin;
+ uint8_t latpin;
+ uint8_t oepin;
+ uint8_t addrapin;
+ uint8_t addrbpin;
+ uint8_t addrcpin;
+ uint8_t addrdpin;
+ uint8_t _sclk;
+ uint8_t _latch;
+ uint8_t _oe;
+ uint8_t _a;
+ uint8_t _b;
+ uint8_t _c;
+ uint8_t _d;
+
+ // Counters/pointers for interrupt handler:
+ volatile uint8_t row;
+ volatile uint8_t plane;
+ volatile uint8_t *buffptr;
+
+#endif //__cplusplus

@@ -1,3 +1,11 @@
+#include <pololu/orangutan.h>
+
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+
 /*
 RGBmatrixPanel Arduino library for Adafruit 16x32 and 32x32 RGB LED
 matrix panels.  Pick one up at:
@@ -42,7 +50,7 @@ BSD license, all text above must be included in any redistribution.
 // For similar reasons, the clock pin is only semi-configurable...it can
 // be specified as any pin within a specific PORT register stated below.
 
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+//#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
  // Arduino Mega is now tested and confirmed, with the following caveats:
  // Because digital pins 2-7 don't map to a contiguous port register,
  // the Mega requires connecting the matrix data lines to different pins.
@@ -53,25 +61,25 @@ BSD license, all text above must be included in any redistribution.
  // wiring will need to be slightly different than the tutorial's
  // explanation on the Uno, etc.  Pins 10-13 are all fair game for the
  // clock, as are pins 50-53.
- #define DATAPORT PORTA
- #define DATADIR  DDRA
- #define SCLKPORT PORTB
-#elif defined(__AVR_ATmega32U4__)
+// #define DATAPORT PORTA
+// #define DATADIR  DDRA
+// #define SCLKPORT PORTB
+//#elif defined(__AVR_ATmega32U4__)
  // Arduino Leonardo: this is vestigial code an unlikely to ever be
  // finished -- DO NOT USE!!!  Unlike the Uno, digital pins 2-7 do NOT
  // map to a contiguous port register, dashing our hopes for compatible
  // wiring.  Making this work would require significant changes both to
  // the bit-shifting code in the library, and how this board is wired to
  // the LED matrix.  Bummer.
- #define DATAPORT PORTD
- #define DATADIR  DDRD
- #define SCLKPORT PORTB
-#else
+// #define DATAPORT PORTD
+// #define DATADIR  DDRD
+// #define SCLKPORT PORTD
+//#else
  // Ports for "standard" boards (Arduino Uno, Duemilanove, etc.)
- #define DATAPORT PORTD
- #define DATADIR  DDRD
- #define SCLKPORT PORTB
-#endif
+ #define DATAPORT PORTA
+ #define DATADIR  DDRA
+ #define SCLKPORT PORTD
+//#endif
 
 #define nPlanes 4
 
@@ -83,11 +91,11 @@ BSD license, all text above must be included in any redistribution.
 // the prior active panel really should be gracefully disabled, and a
 // stop() method should perhaps be added...assuming multiple instances
 // are even an actual need.
-static RGBmatrixPanel *activePanel = NULL;
+//static RGBmatrixPanel *activePanel = NULL; BCA DO SOMETHING WITH THIS
 
 // Code common to both the 16x32 and 32x32 constructors:
-void RGBmatrixPanel::init(uint8_t rows, uint8_t a, uint8_t b, uint8_t c,
-  uint8_t sclk, uint8_t latch, uint8_t oe, boolean dbuf, uint8_t width) {
+void init(uint8_t rows, uint8_t a, uint8_t b, uint8_t c, uint8_t d,
+  uint8_t sclk, uint8_t latch, uint8_t oe, bool dbuf, uint8_t width) {
 
   nRows = rows; // Number of multiplexed rows; actual height is 2X this
 
@@ -103,72 +111,65 @@ void RGBmatrixPanel::init(uint8_t rows, uint8_t a, uint8_t b, uint8_t c,
   _a     = a;
   _b     = b;
   _c     = c;
+  _d     = d;
   _sclk  = sclk;
   _latch = latch;
   _oe    = oe;
 
   // Look up port registers and pin masks ahead of time,
   // avoids many slow digitalWrite() calls later.
-  sclkpin   = digitalPinToBitMask(sclk);
-  latport   = portOutputRegister(digitalPinToPort(latch));
-  latpin    = digitalPinToBitMask(latch);
-  oeport    = portOutputRegister(digitalPinToPort(oe));
-  oepin     = digitalPinToBitMask(oe);
-  addraport = portOutputRegister(digitalPinToPort(a));
-  addrapin  = digitalPinToBitMask(a);
-  addrbport = portOutputRegister(digitalPinToPort(b));
-  addrbpin  = digitalPinToBitMask(b);
-  addrcport = portOutputRegister(digitalPinToPort(c));
-  addrcpin  = digitalPinToBitMask(c); 
+
+  sclkpin   = 1 << sclk;//digitalPinToBitMask(sclk);
+  latport   = &PORTC;//portOutputRegister(digitalPinToPort(latch));
+  latpin    = 1 << latch;//digitalPinToBitMask(latch);
+  oeport    = &PORTC;//portOutputRegister(digitalPinToPort(oe));
+  oepin     = 1 << oe;//digitalPinToBitMask(oe);
+  addraport = &PORTA;//portOutputRegister(digitalPinToPort(a));
+  addrapin  = 1 << a;//digitalPinToBitMask(a);
+  addrbport = &PORTA;//portOutputRegister(digitalPinToPort(b));
+  addrbpin  = 1 << b;//digitalPinToBitMask(b);
+  addrcport = &PORTA;//portOutputRegister(digitalPinToPort(c));
+  addrcpin  = 1 << c;//digitalPinToBitMask(c);
+  addrdport = &PORTA;//portOutputRegister(digitalPinToPort(d));
+  addrdpin  = 1 << d;//digitalPinToBitMask(d);
   plane     = nPlanes - 1;
   row       = nRows   - 1;
   swapflag  = false;
   backindex = 0;     // Array index of back buffer
+
 }
 
-// Constructor for 16x32 panel:
-RGBmatrixPanel::RGBmatrixPanel(
-  uint8_t a, uint8_t b, uint8_t c,
-  uint8_t sclk, uint8_t latch, uint8_t oe, boolean dbuf) :
-  Adafruit_GFX(32, 16) {
-
-  init(8, a, b, c, sclk, latch, oe, dbuf, 32);
-}
-
-// Constructor for 32x32 or 32x64 panel:
-RGBmatrixPanel::RGBmatrixPanel(
-  uint8_t a, uint8_t b, uint8_t c, uint8_t d,
-  uint8_t sclk, uint8_t latch, uint8_t oe, boolean dbuf, uint8_t width) :
-  Adafruit_GFX(width, 32) {
-
-  init(16, a, b, c, sclk, latch, oe, dbuf, width);
-
-  // Init a few extra 32x32-specific elements:
-  _d        = d;
-  addrdport = portOutputRegister(digitalPinToPort(d));
-  addrdpin  = digitalPinToBitMask(d);
-}
-
-void RGBmatrixPanel::begin(void) {
+void begin(void) {
 
   backindex   = 0;                         // Back buffer
   buffptr     = matrixbuff[1 - backindex]; // -> front buffer
-  activePanel = this;                      // For interrupt hander
+  //activePanel = this;                      // For interrupt hander BCA BCA BCA
+
+//BCA WE NEED TO FIND A REPLACEMENT FOR THIS PIN MODE....
 
   // Enable all comm & address pins as outputs, set default states:
-  pinMode(_sclk , OUTPUT); SCLKPORT   &= ~sclkpin;  // Low
-  pinMode(_latch, OUTPUT); *latport   &= ~latpin;   // Low
-  pinMode(_oe   , OUTPUT); *oeport    |= oepin;     // High (disable output)
-  pinMode(_a    , OUTPUT); *addraport &= ~addrapin; // Low
-  pinMode(_b    , OUTPUT); *addrbport &= ~addrbpin; // Low
-  pinMode(_c    , OUTPUT); *addrcport &= ~addrcpin; // Low
-  if(nRows > 8) {
-    pinMode(_d  , OUTPUT); *addrdport &= ~addrdpin; // Low
-  }
+//  pinMode(_sclk , OUTPUT); SCLKPORT   &= ~sclkpin;  // Low
+//  pinMode(_latch, OUTPUT); *latport   &= ~latpin;   // Low
+//  pinMode(_oe   , OUTPUT); *oeport    |= oepin;     // High (disable output)
+//  pinMode(_a    , OUTPUT); *addraport &= ~addrapin; // Low
+//  pinMode(_b    , OUTPUT); *addrbport &= ~addrbpin; // Low
+//  pinMode(_c    , OUTPUT); *addrcport &= ~addrcpin; // Low
+//  if(nRows > 8) {
+//    pinMode(_d  , OUTPUT); *addrdport &= ~addrdpin; // Low
+//  }
+
+// Enable all comm & address pins as outputs, set default states:
+  SCLKPORT   &= ~sclkpin;  // Low
+  *latport   &= ~latpin;   // Low
+  *oeport    |= oepin;     // High (disable output)
+  *addraport &= ~addrapin; // Low
+  *addrbport &= ~addrbpin; // Low
+  *addrcport &= ~addrcpin; // Low
+  *addrdport &= ~addrdpin; // Low
 
   // The high six bits of the data port are set as outputs;
   // Might make this configurable in the future, but not yet.
-  DATADIR  = B11111100;
+  DATADIR  = 0;//B11111100; BCA
   DATAPORT = 0;
 
   // Set up Timer1 for interrupt:
@@ -188,7 +189,7 @@ void RGBmatrixPanel::begin(void) {
 // benefit of older code using one of the original color formats.
 
 // Promote 3/3/3 RGB to Adafruit_GFX 5/6/5
-uint16_t RGBmatrixPanel::Color333(uint8_t r, uint8_t g, uint8_t b) {
+uint16_t Color333(uint8_t r, uint8_t g, uint8_t b) {
   // RRRrrGGGgggBBBbb
   return ((r & 0x7) << 13) | ((r & 0x6) << 10) |
          ((g & 0x7) <<  8) | ((g & 0x7) <<  5) |
@@ -196,7 +197,7 @@ uint16_t RGBmatrixPanel::Color333(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 // Promote 4/4/4 RGB to Adafruit_GFX 5/6/5
-uint16_t RGBmatrixPanel::Color444(uint8_t r, uint8_t g, uint8_t b) {
+uint16_t Color444(uint8_t r, uint8_t g, uint8_t b) {
   // RRRRrGGGGggBBBBb
   return ((r & 0xF) << 12) | ((r & 0x8) << 8) |
          ((g & 0xF) <<  7) | ((g & 0xC) << 3) |
@@ -205,13 +206,13 @@ uint16_t RGBmatrixPanel::Color444(uint8_t r, uint8_t g, uint8_t b) {
 
 // Demote 8/8/8 to Adafruit_GFX 5/6/5
 // If no gamma flag passed, assume linear color
-uint16_t RGBmatrixPanel::Color888(uint8_t r, uint8_t g, uint8_t b) {
+uint16_t Color888(uint8_t r, uint8_t g, uint8_t b) {
   return ((r & 0xF8) << 11) | ((g & 0xFC) << 5) | (b >> 3);
 }
 
 // 8/8/8 -> gamma -> 5/6/5
-uint16_t RGBmatrixPanel::Color888(
-  uint8_t r, uint8_t g, uint8_t b, boolean gflag) {
+uint16_t Color888_2(
+  uint8_t r, uint8_t g, uint8_t b, bool gflag) {
   if(gflag) { // Gamma-corrected color?
     r = pgm_read_byte(&gamma[r]); // Gamma correction table maps
     g = pgm_read_byte(&gamma[g]); // 8-bit input to 4-bit output
@@ -223,8 +224,8 @@ uint16_t RGBmatrixPanel::Color888(
   return ((r & 0xF8) << 11) | ((g & 0xFC) << 5) | (b >> 3);
 }
 
-uint16_t RGBmatrixPanel::ColorHSV(
-  long hue, uint8_t sat, uint8_t val, boolean gflag) {
+uint16_t ColorHSV(
+  long hue, uint8_t sat, uint8_t val, bool gflag) {
 
   uint8_t  r, g, b, lo;
   uint16_t s1, v1;
@@ -267,7 +268,7 @@ uint16_t RGBmatrixPanel::ColorHSV(
          (b <<  1) | ( b        >> 3);
 }
 
-void RGBmatrixPanel::drawPixel(int16_t x, int16_t y, uint16_t c) {
+void drawPixel(int16_t x, int16_t y, uint16_t c) {
   uint8_t r, g, b, bit, limit, *ptr;
 
   if((x < 0) || (x >= _width) || (y < 0) || (y >= _height)) return;
@@ -303,41 +304,42 @@ void RGBmatrixPanel::drawPixel(int16_t x, int16_t y, uint16_t c) {
     ptr = &matrixbuff[backindex][y * WIDTH * (nPlanes - 1) + x]; // Base addr
     // Plane 0 is a tricky case -- its data is spread about,
     // stored in least two bits not used by the other planes.
-    ptr[_width*2] &= ~B00000011;            // Plane 0 R,G mask out in one op
-    if(r & 1) ptr[_width*2] |=  B00000001;  // Plane 0 R: 64 bytes ahead, bit 0
-    if(g & 1) ptr[_width*2] |=  B00000010;  // Plane 0 G: 64 bytes ahead, bit 1
-    if(b & 1) ptr[_width] |=  B00000001;  // Plane 0 B: 32 bytes ahead, bit 0
-    else      ptr[_width] &= ~B00000001;  // Plane 0 B unset; mask out
+    ptr[_width*2] &= 0;//~B00000011;            // Plane 0 R,G mask out in one op
+    if(r & 1) ptr[_width*2] |= 0;// B00000001;  // Plane 0 R: 64 bytes ahead, bit 0
+    if(g & 1) ptr[_width*2] |= 0;//B00000010;  // Plane 0 G: 64 bytes ahead, bit 1
+    if(b & 1) ptr[_width] |=  0;//B00000001;  // Plane 0 B: 32 bytes ahead, bit 0
+    else      ptr[_width] &= 0;//~B00000001;  // Plane 0 B unset; mask out
     // The remaining three image planes are more normal-ish.
     // Data is stored in the high 6 bits so it can be quickly
     // copied to the DATAPORT register w/6 output lines.
     for(; bit < limit; bit <<= 1) {
-      *ptr &= ~B00011100;             // Mask out R,G,B in one op
-      if(r & bit) *ptr |= B00000100;  // Plane N R: bit 2
-      if(g & bit) *ptr |= B00001000;  // Plane N G: bit 3
-      if(b & bit) *ptr |= B00010000;  // Plane N B: bit 4
+      *ptr &= 0;//~B00011100;             // Mask out R,G,B in one op
+      if(r & bit) *ptr |= 0;//B00000100;  // Plane N R: bit 2
+      if(g & bit) *ptr |= 0;//B00001000;  // Plane N G: bit 3
+      if(b & bit) *ptr |= 0;//B00010000;  // Plane N B: bit 4
       ptr  += WIDTH;                  // Advance to next bit plane
     }
   } else {
     // Data for the lower half of the display is stored in the upper
     // bits, except for the plane 0 stuff, using 2 least bits.
     ptr = &matrixbuff[backindex][(y - nRows) * WIDTH * (nPlanes - 1) + x];
-    *ptr &= ~B00000011;               // Plane 0 G,B mask out in one op
-    if(r & 1)  ptr[_width] |=  B00000010; // Plane 0 R: 32 bytes ahead, bit 1
-    else       ptr[_width] &= ~B00000010; // Plane 0 R unset; mask out
-    if(g & 1) *ptr     |=  B00000001; // Plane 0 G: bit 0
-    if(b & 1) *ptr     |=  B00000010; // Plane 0 B: bit 0
+    *ptr &= 0;//~B00000011;               // Plane 0 G,B mask out in one op
+    if(r & 1)  ptr[_width] |=  0;//B00000010; // Plane 0 R: 32 bytes ahead, bit 1
+    else       ptr[_width] &= 0;//~B00000010; // Plane 0 R unset; mask out
+    if(g & 1) *ptr     |=  0;//B00000001; // Plane 0 G: bit 0
+    if(b & 1) *ptr     |=  0;//B00000010; // Plane 0 B: bit 0
     for(; bit < limit; bit <<= 1) {
-      *ptr &= ~B11100000;             // Mask out R,G,B in one op
-      if(r & bit) *ptr |= B00100000;  // Plane N R: bit 5
-      if(g & bit) *ptr |= B01000000;  // Plane N G: bit 6
-      if(b & bit) *ptr |= B10000000;  // Plane N B: bit 7
+      *ptr &= 0;//~B11100000;             // Mask out R,G,B in one op
+      if(r & bit) *ptr |= 0;//B00100000;  // Plane N R: bit 5
+      if(g & bit) *ptr |= 0;//B01000000;  // Plane N G: bit 6
+      if(b & bit) *ptr |= 0;//B10000000;  // Plane N B: bit 7
       ptr  += WIDTH;                  // Advance to next bit plane
     }
   }
+
 }
 
-void RGBmatrixPanel::fillScreen(uint16_t c) {
+void fillScreen(uint16_t c) {
   if((c == 0x0000) || (c == 0xffff)) {
     // For black or white, all bits in frame buffer will be identically
     // set or unset (regardless of weird bit packing), so it's OK to just
@@ -345,12 +347,12 @@ void RGBmatrixPanel::fillScreen(uint16_t c) {
     memset(matrixbuff[backindex], c, _width * nRows * 3);
   } else {
     // Otherwise, need to handle it the long way:
-    Adafruit_GFX::fillScreen(c);
+    fillScreen(c);
   }
 }
 
 // Return address of back buffer -- can then load/store data directly
-uint8_t *RGBmatrixPanel::backBuffer() {
+uint8_t *backBuffer() {
   return matrixbuff[backindex];
 }
 
@@ -360,7 +362,7 @@ uint8_t *RGBmatrixPanel::backBuffer() {
 // be incrementally modified.  If "false", the back buffer then contains
 // the old front buffer contents -- your code can either clear this or
 // draw over every pixel.  (No effect if double-buffering is not enabled.)
-void RGBmatrixPanel::swapBuffers(boolean copy) {
+void swapBuffers(bool copy) {
   if(matrixbuff[0] != matrixbuff[1]) {
     // To avoid 'tearing' display, actual swap takes place in the interrupt
     // handler, at the end of a complete screen refresh cycle.
@@ -376,13 +378,15 @@ void RGBmatrixPanel::swapBuffers(boolean copy) {
 // sketch.  If using multiple dumps this way, you'll need to edit the
 // output to change the 'img' name for each.  Data can then be loaded
 // back into the display using a pgm_read_byte() loop.
-void RGBmatrixPanel::dumpMatrix(void) {
+
+// BCA DO WE NEED THIS????
+/*void dumpMatrix(void) {
 
   int i, buffsize = _width * nRows * 3;
 
-  Serial.print("\n\n"
-    "#include <avr/pgmspace.h>\n\n"
-    "static const uint8_t PROGMEM img[] = {\n  ");
+//  Serial.print("\n\n" BCA WHAT IS THIS???? DON"T NEED IT
+//    "#include <avr/pgmspace.h>\n\n"
+//    "static const uint8_t PROGMEM img[] = {\n  ");
 
   for(i=0; i<buffsize; i++) {
     Serial.print("0x");
@@ -394,12 +398,13 @@ void RGBmatrixPanel::dumpMatrix(void) {
     }
   }
   Serial.println("\n};");
-}
+}*/
 
 // -------------------- Interrupt handler stuff --------------------
 
 ISR(TIMER1_OVF_vect, ISR_BLOCK) { // ISR_BLOCK important -- see notes later
-  activePanel->updateDisplay();   // Call refresh func for active display
+  //activePanel->updateDisplay();   // Call refresh func for active display BCA
+  updateDisplay();
   TIFR1 |= TOV1;                  // Clear Timer1 interrupt flag
 }
 
@@ -448,7 +453,7 @@ ISR(TIMER1_OVF_vect, ISR_BLOCK) { // ISR_BLOCK important -- see notes later
 // counter variables change between past/present/future tense in mid-
 // function...hopefully tenses are sufficiently commented.
 
-void RGBmatrixPanel::updateDisplay(void) {
+void updateDisplay(void) {
   uint8_t  i, tick, tock, *ptr;
   uint16_t t, duration;
 
@@ -570,7 +575,6 @@ void RGBmatrixPanel::updateDisplay(void) {
         ((ptr[i+_width*2] << 2) & 0x0C);
       SCLKPORT = tick; // Clock lo
       SCLKPORT = tock; // Clock hi
-    } 
+    }
   }
 }
-
