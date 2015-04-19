@@ -26,30 +26,40 @@ volatile int printAdc = 0;
 unsigned int dataArray[ARRAY_LEN];
 unsigned char samples = 0;
 
-int main(void) 
+int main(void)
 {
-	// Initialization here.
-	lcd_init_printf();	// required if we want to use printf() for LCD printing
-	init_timers();
-	init_menu();	// this is initialization of serial comm through USB
-	init_adc();
-	clear();	// clear the LCD
-
-	//enable interrupts
-	sei();
-	
-	//start_analog_conversion(CHANNEL_A);  // start initial conversion
-	while (1) 
-	{
-	    if (printAdc)
+    // Initialization here.
+    lcd_init_printf();	// required if we want to use printf() for LCD printing
+    init_timers();
+    init_menu();	// this is initialization of serial comm through USB
+    init_adc();
+    clear();	// clear the LCD
+    
+    //enable interrupts
+    sei();
+    
+    //ADSC
+    //23.4 Page 237
+    //A single conversion is started by writing a logical one to the ADC Start Conversion bit, ADSC. This bit stays high as long as the conversion is in progress and will be cleared by hardware when the conversion is completed.
+    //23.9.2 Page 250
+    //7 ADEN, 6 ADSC, 5 ADATE, 4 ADIF, 3 ADIE, 2 ADPS2, 1 ADPS1 0 ADPS0
+    ADCSRA = (1 << ADEN) | (1 << ADSC) | (0 << ADATE) | (0 << ADIF) | (0 << ADIE) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
+    DIDR0 = (1 << ADCD01);
+    
+    
+    
+    //start_analog_conversion(CHANNEL_A);  // start initial conversion
+    while (1)
+    {
+        if (printAdc)
         {
             printAdc = 0;
             print_adc_vals();
             samples = 0;
         }
         serial_check();
-		check_for_new_bytes_received();
-	} //end while loop
+        check_for_new_bytes_received();
+    } //end while loop
 } //end main
 
 void print_adc_vals(void)
