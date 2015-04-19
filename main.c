@@ -44,7 +44,8 @@ int main(void)
     //23.9.2 Page 250
     //7 ADEN, 6 ADSC, 5 ADATE, 4 ADIF, 3 ADIE, 2 ADPS2, 1 ADPS1 0 ADPS0
     ADCSRA = (1 << ADEN) | (1 << ADSC) | (0 << ADATE) | (0 << ADIF) | (0 << ADIE) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
-    DIDR0 = (1 << ADCD01);
+    //23.9.5 Page 253
+    DIDR0 = (1 << ADC0D);
     
     
     
