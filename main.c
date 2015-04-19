@@ -20,25 +20,12 @@
 #include <math.h>
 
 // Function prototypes
-//void init_adc(void);
+void init_adc(void);
 
 // GLOBALS
-volatile uint32_t G_yellow_ticks = 0;
-volatile uint32_t G_ms_ticks = 0;
-
-volatile uint16_t G_red_period = 500;
-volatile uint16_t G_green_period = 500;
-volatile uint16_t G_yellow_period = 500;
-
-volatile uint16_t G_release_red = 0;
-
-volatile uint32_t G_red_toggles = 0;
-volatile uint32_t G_green_toggles = 0;
-volatile uint32_t G_yellow_toggles = 0;
-
-volatile uint8_t G_flag = 0; // generic flag for debugging
 char send_buffer[32];
-
+volatile int printAdc = 0;
+ 
 // ADC stuff
 #define ARRAY_LEN 100
 unsigned int dataArray[ARRAY_LEN];
@@ -123,18 +110,42 @@ int main(void)
 	while (1)
 	{
 	    if (!analog_is_converting())     // if conversion is done...
+/*
+int main(void)
+{
+    // Initialization here.
+    lcd_init_printf();	// required if we want to use printf() for LCD printing
+    init_timers();
+    init_menu();	// this is initialization of serial comm through USB
+    init_adc();
+    clear();	// clear the LCD
+    
+    //enable interrupts
+    sei();
+    
+    //ADSC
+    //23.4 Page 237
+    //A single conversion is started by writing a logical one to the ADC Start Conversion bit, ADSC. This bit stays high as long as the conversion is in progress and will be cleared by hardware when the conversion is completed.
+    //23.9.2 Page 250
+    //7 ADEN, 6 ADSC, 5 ADATE, 4 ADIF, 3 ADIE, 2 ADPS2, 1 ADPS1 0 ADPS0
+    ADCSRA = (1 << ADEN) | (1 << ADSC) | (0 << ADATE) | (0 << ADIF) | (0 << ADIE) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
+    //23.9.5 Page 253
+    DIDR0 = (1 << ADC0D);
+    
+    
+    
+    //start_analog_conversion(CHANNEL_A);  // start initial conversion
+    while (1)
+    {
+        if (printAdc)
         {
-          dataArray[samples] = analog_conversion_result();  // get result
-          start_analog_conversion(CHANNEL_A);   // start next conversion
-          if (++samples >= ARRAY_LEN)           // if 20 samples have been taken...
-          {
+            printAdc = 0;
             print_adc_vals();
             samples = 0;
-          }
         }
         serial_check();
-		check_for_new_bytes_received();
-	} //end while loop
+        check_for_new_bytes_received();
+    } //end while loop
 } //end main
 */
 /*
@@ -151,12 +162,12 @@ void print_adc_vals(void)
     //length = sprintf( tempBuffer, "Adc vals\r\n");
     //print_usb(tempBuffer, length);
     //wait_for_sending_to_finish();
-
+    
     // View the current values in the array
     for(i = 0; i < ARRAY_LEN; i+=5)
-    {
-        length = snprintf( tempBuffer, 64, "%d\r\n%d\r\n%d\r\n%d\r\n%d\r\n",
-                      dataArray[i], dataArray[i+1], dataArray[i+2],
+    { 
+        length = snprintf( tempBuffer, 64, "%d\r\n%d\r\n%d\r\n%d\r\n%d\r\n", 
+                      dataArray[i], dataArray[i+1], dataArray[i+2], 
                       dataArray[i+3], dataArray[i+4]);
         print_usb(tempBuffer, length);
         wait_for_sending_to_finish();
@@ -165,7 +176,21 @@ void print_adc_vals(void)
 }
 */
 
-//void init_adc(void)
-//{
-//    set_analog_mode(MODE_10_BIT);    // 8-bit analog-to-digital conversions
-//}
+void init_adc(void)
+{
+    set_analog_mode(MODE_10_BIT);    // 8-bit analog-to-digital conversions
+}
+
+// INTERRUPT HANDLER for reading the ADC
+ISR(TIMER0_COMPA_vect) 
+{
+    dataArray[samples] = analog_read(0);//analog_conversion_result();  // get result
+    if (samples >= ARRAY_LEN)           // if all samples have been taken...
+    {
+        printAdc = 1;
+    }
+    else
+    {
+        samples++;
+    }
+}
