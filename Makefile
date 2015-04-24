@@ -15,7 +15,7 @@ PORT ?= /dev/ttyACM0
 AVRDUDE=avrdude
 
 TARGET=main
-OBJECT_FILES=main.o led_controller.o timers.o menu.o RGBmatrixPanel.o Adafruit_GFX.o
+OBJECT_FILES=main.o led_controller.o timers.o menu.o RGBmatrixPanel.o Adafruit_GFX.o test_led.o
 
 all: $(TARGET).hex
 

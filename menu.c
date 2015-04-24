@@ -3,6 +3,7 @@
 #include "timer.h"
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <inttypes.h>
 
 // GLOBALS
@@ -10,6 +11,8 @@ extern uint32_t G_red_toggles;
 extern uint32_t G_green_toggles;
 extern uint32_t G_yellow_toggles;
 
+extern bool display_shapes;
+extern bool display_color_wheel;
 
 // local "global" data structures
 char receive_buffer[32];
@@ -91,89 +94,14 @@ void process_received_string(const char* buffer)
 		case 'h':
 		    print_help();
 		    break;
-	    // Start Logging
-		case 'L':
-		    //enable_logging(1);
-		    break;
-		// Stop Logging
-		case 'l':
-		    //enable_logging(0);
-		    break;
-		//V/v: View the current values
-		case 'V':
-		case 'v':
-		    //print_adc_vals();
-		    break;
-		//R/r : Set the reference position (use unit "counts")
-        case 'R':
-		case 'r':
-			//set_ctrl_type(CTRL_POS_SETPNT, value);
-			//enable_logging(1);
+		// Display color wheel
+		case 'w':
+			display_color_wheel = !display_color_wheel;
 			break;
-        //S/s : Set the reference speed (use unit "counts"/sec)
-        case 'S':
-		case 's':
-			//set_ctrl_type(CTRL_SPD_SETPNT, value);
-			//enable_logging(1);
+		// Display shapes
+		case 'e':
+			display_shapes = !display_shapes;
 			break;
-		// Execute Position Trajectory
-		case 'T':
-			//set_ctrl_type(CTRL_POS_INTERP, 0);
-			//enable_logging(1);
-			break;
-		// Execute Speed Trajectory
-		case 't':
-			print_usb( "BARRY.\r\n", 8 );
-			//set_ctrl_type(CTRL_SPD_INTERP, 0);
-			//enable_logging(1);
-			break;
-		// Increase Kp
-		/*case 'P':
-		    if( get_mode() == CTRL_SPD_SETPNT || get_mode() == CTRL_SPD_INTERP )
-		        change_value(KP_SPD, INCREMENT);
-		    else if( get_mode() == CTRL_POS_SETPNT || get_mode() == CTRL_POS_INTERP )
-		        change_value(KP_POS, INCREMENT);
-		    break;
-		// Decrease Kp
-		case 'p':
-		    if( get_mode() == CTRL_SPD_SETPNT || get_mode() == CTRL_SPD_INTERP )
-		        change_value(KP_SPD, DECREMENT);
-		    else if( get_mode() == CTRL_POS_SETPNT || get_mode() == CTRL_POS_INTERP )
-		        change_value(KP_POS, DECREMENT);
-		    print_motor_vals();
-		    break;
-        // Increase Ki
-		case 'I':
-		    if( get_mode() == CTRL_SPD_SETPNT || get_mode() == CTRL_SPD_INTERP )
-		        change_value(KI_SPD, INCREMENT);
-		    else if( get_mode() == CTRL_POS_SETPNT || get_mode() == CTRL_POS_INTERP )
-		        change_value(KI_POS, INCREMENT);
-		    print_motor_vals();
-		    break;
-		// Decrease Ki
-		case 'i':
-		    if( get_mode() == CTRL_SPD_SETPNT || get_mode() == CTRL_SPD_INTERP )
-		        change_value(KI_SPD, DECREMENT);
-		    else if( get_mode() == CTRL_POS_SETPNT || get_mode() == CTRL_POS_INTERP )
-		        change_value(KI_POS, DECREMENT);
-		    print_motor_vals();
-		    break;
-		// Increase Kd
-		case 'D':
-		    if( get_mode() == CTRL_SPD_SETPNT || get_mode() == CTRL_SPD_INTERP )
-		        change_value(KD_SPD, INCREMENT);
-		    else if( get_mode() == CTRL_POS_SETPNT || get_mode() == CTRL_POS_INTERP )
-		        change_value(KD_POS, INCREMENT);
-		    print_motor_vals();
-		    break;
-		// Decrease Kd
-		case 'd':
-		    if( get_mode() == CTRL_SPD_SETPNT || get_mode() == CTRL_SPD_INTERP )
-		        change_value(KD_SPD, DECREMENT);
-		    else if( get_mode() == CTRL_POS_SETPNT || get_mode() == CTRL_POS_INTERP )
-		        change_value(KD_POS, DECREMENT);
-		    print_motor_vals();
-		    break;*/
 		default:
 			print_usb( "Command does not compute.\r\n", 27 );
 		} // end switch(op_char)

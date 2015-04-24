@@ -49,12 +49,12 @@ POSSIBILITY OF SUCH DAMAGE.
  #define pgm_read_byte(addr) (*(const unsigned char *)(addr))
 #endif
 
-//void Adafruit_GFX(int16_t w, int16_t h):
-//  WIDTH(w), HEIGHT(h)
 void Adafruit_GFX(int16_t w, int16_t h)
 {
-  _width    = WIDTH;
-  _height   = HEIGHT;
+  BOARD_WIDTH = w;
+  BOARD_HEIGHT = h;
+  _width    = BOARD_WIDTH;
+  _height   = BOARD_HEIGHT;
   rotation  = 0;
   cursor_y  = cursor_x    = 0;
   textsize  = 1;
@@ -511,13 +511,13 @@ void setRotation(uint8_t x) {
   switch(rotation) {
    case 0:
    case 2:
-    _width  = WIDTH;
-    _height = HEIGHT;
+    _width  = BOARD_WIDTH;
+    _height = BOARD_HEIGHT;
     break;
    case 1:
    case 3:
-    _width  = HEIGHT;
-    _height = WIDTH;
+    _width  = BOARD_HEIGHT;
+    _height = BOARD_WIDTH;
     break;
   }
 }
