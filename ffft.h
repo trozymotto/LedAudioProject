@@ -13,18 +13,11 @@ typedef struct _tag_complex_t {
 } complex_t;
 
 
-#ifndef INPUT_NOUSE
-#ifdef INPUT_IQ
-void fft_input (const complex_t *, complex_t *);
-#else
-extern "C" { void fft_input (const int16_t *, complex_t *); }
-#endif
-#endif
-extern "C" {
+void fft_input (const int16_t *, complex_t *);
 void fft_execute (complex_t *);
 void fft_output (complex_t *, uint16_t *);
 int16_t fmuls_f (int16_t, int16_t);
-} 
+
 #include <avr/pgmspace.h>
 extern const int16_t PROGMEM tbl_window[];
 

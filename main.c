@@ -19,6 +19,16 @@
 #include "RGBmatrixPanel.h"
 #include "test_led.h"
 
+//FFT library
+#include "ffft.h"
+
+
+typedef enum {
+    BANK_NULL,
+    BANK1,
+    BANK2
+}tCaptureBank;
+
 // Function prototypes
 void init_adc(void);
 void print_adc_vals();
@@ -30,9 +40,14 @@ bool display_color_wheel = 0;
 bool display_shapes = 0;
 
 // ADC stuff
-#define ARRAY_LEN 100
-unsigned int dataArray[ARRAY_LEN];
+//#define ARRAY_LEN 100
+//unsigned int dataArray1[ARRAY_LEN];
+tCaptureBank  mBank = BANK1;
 unsigned char samples = 0;
+int16_t       capture1[FFT_N];
+int16_t       capture2[FFT_N];
+complex_t     bfly_buff[FFT_N];  // FFT "butterfly" buffer
+uint16_t      spectrum[FFT_N/2]; // Spectrum output buffer
 
 // Pinouts for LED Matrix
 #define LED_CLK 5
@@ -49,9 +64,9 @@ int main(void)
 
     // Initialization here.
     lcd_init_printf();	// required if we want to use printf() for LCD printing
-    //init_timers();
+    init_timers();
     init_menu();	// this is initialization of serial comm through USB
-    //init_adc();
+    init_adc();
     clear();	// clear the LCD
 
     //enable interrupts
@@ -74,14 +89,21 @@ int main(void)
     //start_analog_conversion(CHANNEL_A);  // start initial conversion
     while (1)
     {
-      /*
+      
         if (printAdc)
         {
             printAdc = 0;
             print_adc_vals();
-            samples = 0;
+            if(mBank == BANK2){
+                //fft_input(capture1, bfly_buff);   // Samples -> complex #s
+            }
+            else{
+                //fft_input(capture2, bfly_buff);   // Samples -> complex #s
+            }
+            
+            //fft_execute(bfly_buff);          // Process complex data
+            //fft_output(bfly_buff, spectrum); // Complex -> spectrum
         }
-        */
 
         if (display_shapes)
           test_shapes();
@@ -112,18 +134,31 @@ void print_adc_vals(void)
 	int length;
 	char tempBuffer[64];
     wait_for_sending_to_finish();
-
+    
     // Print the header
-    //length = sprintf( tempBuffer, "Adc vals\r\n");
+    //if(mBank == BANK2){
+    //    length = sprintf( tempBuffer, "Capture1:\r\n");
+    //}
+    //else{
+    //    length = sprintf( tempBuffer, "Capture2:\r\n");
+    //}
     //print_usb(tempBuffer, length);
     //wait_for_sending_to_finish();
 
     // View the current values in the array
-    for(i = 0; i < ARRAY_LEN; i+=5)
+    for(i = 0; i < FFT_N; i+=5)
     {
-        length = snprintf( tempBuffer, 64, "%d\r\n%d\r\n%d\r\n%d\r\n%d\r\n",
-                      dataArray[i], dataArray[i+1], dataArray[i+2],
-                      dataArray[i+3], dataArray[i+4]);
+        if(mBank == BANK2){
+            length = snprintf( tempBuffer, 64, "%d\r\n%d\r\n%d\r\n%d\r\n%d\r\n",
+                      capture1[i], capture1[i+1], capture1[i+2],
+                      capture1[i+3], capture1[i+4]);
+        }
+        else{
+            length = snprintf( tempBuffer, 64, "%d\r\n%d\r\n%d\r\n%d\r\n%d\r\n",
+                      capture2[i], capture2[i+1], capture2[i+2],
+                      capture2[i+3], capture2[i+4]);
+        }
+        
         print_usb(tempBuffer, length);
         wait_for_sending_to_finish();
     }
@@ -139,10 +174,37 @@ void init_adc(void)
 // INTERRUPT HANDLER for reading the ADC
 ISR(TIMER0_COMPA_vect)
 {
-    dataArray[samples] = analog_read(0);//analog_conversion_result();  // get result
-    if (samples >= ARRAY_LEN)           // if all samples have been taken...
+    static const int16_t noiseThreshold = 4;
+    int16_t              sample         = analog_read(0);
+
+    if((sample > (512-noiseThreshold)) && (sample < (512+noiseThreshold))) 
+        sample = 0;
+    else
+        sample -= 512; // Sign-convert for FFT; -512 to +511
+
+    // Dump the data into the active bank
+    switch(mBank){
+    case BANK1:
+        capture1[samples] = sample;
+        break;
+    case BANK2:
+        capture2[samples] = sample;
+        break;
+    default:
+        break;
+    }
+    
+    // if all samples have been taken...
+    // Set the flag to run the FFT
+    // Flip to the other bank
+    if (samples >= FFT_N)           
     {
         printAdc = 1;
+        samples = 0;
+        if(mBank == BANK2)
+            mBank = BANK1;
+        else
+            mBank = BANK2;
     }
     else
     {
