@@ -5,6 +5,7 @@ PORT ?= /dev/ttyACM0
 DEVICE ?= atmega168
 MCU ?= atmega168
 AVRDUDE_DEVICE ?= m168
+DEBUG          = dwarf-2
 
 CFLAGS=-g -Wall -mcall-prologues -mmcu=$(MCU) $(DEVICE_SPECIFIC_CFLAGS) -Os
 CC=avr-gcc
@@ -15,7 +16,7 @@ PORT ?= /dev/ttyACM0
 AVRDUDE=avrdude
 
 TARGET=main
-OBJECT_FILES=main.o led_controller.o timers.o menu.o RGBmatrixPanel.o Adafruit_GFX.o test_led.o
+OBJECT_FILES=main.o led_controller.o timers.o menu.o RGBmatrixPanel.o Adafruit_GFX.o test_led.o fix_fft.o
 
 all: $(TARGET).hex
 

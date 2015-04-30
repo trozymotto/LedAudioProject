@@ -21,7 +21,9 @@
 
 //FFT library
 #include "ffft.h"
+#include "fix_fft.h"
 
+#define FIX_FFT
 
 typedef enum {
     BANK_NULL,
@@ -44,10 +46,19 @@ bool display_shapes = 0;
 //unsigned int dataArray1[ARRAY_LEN];
 tCaptureBank  mBank = BANK1;
 unsigned char samples = 0;
+
+#ifndef FIX_FFT
 int16_t       capture1[FFT_N];
 int16_t       capture2[FFT_N];
 complex_t     bfly_buff[FFT_N];  // FFT "butterfly" buffer
 uint16_t      spectrum[FFT_N/2]; // Spectrum output buffer
+
+#else
+int8_t       capture1[FFT_N];
+int8_t       capture2[FFT_N];
+int8_t       bfly_buff[FFT_N];  // FFT "butterfly" buffer
+int8_t       spectrum[FFT_N/2]; // Spectrum output buffer
+#endif
 
 // Pinouts for LED Matrix
 #define LED_CLK 5
@@ -93,14 +104,29 @@ int main(void)
         if (printAdc)
         {
             printAdc = 0;
-            print_adc_vals();
+            
             if(mBank == BANK2){
                 //fft_input(capture1, bfly_buff);   // Samples -> complex #s
+                fix_fft(bfly_buff, capture1, 7, 0);
             }
             else{
                 //fft_input(capture2, bfly_buff);   // Samples -> complex #s
+                fix_fft(bfly_buff, capture2, 7, 0);
             }
-            
+            print_adc_vals();
+              // Downsample spectrum output to 8 columns:
+            /*for(x=0; x<8; x++) {
+                data   = (uint8_t *)pgm_read_word(&colData[x]);
+                nBins  = pgm_read_byte(&data[0]) + 2;
+                binNum = pgm_read_byte(&data[1]);
+                for(sum=0, i=2; i<nBins; i++)
+                    sum += spectrum[binNum++] * pgm_read_byte(&data[i]); // Weighted
+                col[x][colCount] = sum / colDiv[x];                    // Average
+                minLvl = maxLvl = col[x][0];
+                for(i=1; i<10; i++) { // Get range of prior 10 frames
+                    if(col[x][i] < minLvl)      minLvl = col[x][i];
+                    else if(col[x][i] > maxLvl) maxLvl = col[x][i];
+            }*/
             //fft_execute(bfly_buff);          // Process complex data
             //fft_output(bfly_buff, spectrum); // Complex -> spectrum
         }
@@ -149,14 +175,28 @@ void print_adc_vals(void)
     for(i = 0; i < FFT_N; i+=5)
     {
         if(mBank == BANK2){
-            length = snprintf( tempBuffer, 64, "%d\r\n%d\r\n%d\r\n%d\r\n%d\r\n",
-                      capture1[i], capture1[i+1], capture1[i+2],
-                      capture1[i+3], capture1[i+4]);
+            length = snprintf( tempBuffer, 64, "%d,%d\r\n"
+                                               "%d,%d\r\n"
+                                               "%d,%d\r\n"
+                                               "%d,%d\r\n"
+                                               "%d,%d\r\n",
+                      capture1[i],    bfly_buff[i],
+                      capture1[i+1],  bfly_buff[i+1], 
+                      capture1[i+2],  bfly_buff[i+2], 
+                      capture1[i+3],  bfly_buff[i+3], 
+                      capture1[i+4],  bfly_buff[i+4]); 
         }
         else{
-            length = snprintf( tempBuffer, 64, "%d\r\n%d\r\n%d\r\n%d\r\n%d\r\n",
-                      capture2[i], capture2[i+1], capture2[i+2],
-                      capture2[i+3], capture2[i+4]);
+            length = snprintf( tempBuffer, 64, "%d,%d\r\n"
+                                               "%d,%d\r\n"
+                                               "%d,%d\r\n"
+                                               "%d,%d\r\n"
+                                               "%d,%d\r\n",
+                      capture2[i],    bfly_buff[i],
+                      capture2[i+1],  bfly_buff[i+1], 
+                      capture2[i+2],  bfly_buff[i+2], 
+                      capture2[i+3],  bfly_buff[i+3], 
+                      capture2[i+4],  bfly_buff[i+4]);
         }
         
         print_usb(tempBuffer, length);
@@ -182,6 +222,9 @@ ISR(TIMER0_COMPA_vect)
     else
         sample -= 512; // Sign-convert for FFT; -512 to +511
 
+#ifdef FIX_FFT
+    sample = (int8_t)(sample / 2);
+#endif
     // Dump the data into the active bank
     switch(mBank){
     case BANK1:
