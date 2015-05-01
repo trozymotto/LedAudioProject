@@ -40,6 +40,8 @@ char send_buffer[32];
 volatile int printAdc = 0;
 bool display_color_wheel = 0;
 bool display_shapes = 0;
+//Interrupt counters
+volatile long global_adc_counter = 0;
 
 // ADC stuff
 //#define ARRAY_LEN 100
@@ -81,26 +83,18 @@ int main(void)
     clear();	// clear the LCD
 
     //enable interrupts
-    //sei();
-
+    sei();
+    
     //init the LED Matrix
-  	Adafruit_GFX(32, 32);
+    Adafruit_GFX(32, 32);
   	init(16,LED_A, LED_B, LED_C, LED_D, LED_CLK, LED_LAT, LED_OE, false,32);
   	begin();
-
-    //ADSC
-    //23.4 Page 237
-    //A single conversion is started by writing a logical one to the ADC Start Conversion bit, ADSC. This bit stays high as long as the conversion is in progress and will be cleared by hardware when the conversion is completed.
-    //23.9.2 Page 250
-    //7 ADEN, 6 ADSC, 5 ADATE, 4 ADIF, 3 ADIE, 2 ADPS2, 1 ADPS1 0 ADPS0
-    ADCSRA = (1 << ADEN) | (1 << ADSC) | (0 << ADATE) | (0 << ADIF) | (0 << ADIE) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
-    //23.9.5 Page 253
-    DIDR0 = (1 << ADC0D);
 
     //start_analog_conversion(CHANNEL_A);  // start initial conversion
     while (1)
     {
       
+        
         if (printAdc)
         {
             printAdc = 0;
@@ -114,6 +108,7 @@ int main(void)
                 fix_fft(bfly_buff, capture2, 7, 0);
             }
             print_adc_vals();
+         
               // Downsample spectrum output to 8 columns:
             /*for(x=0; x<8; x++) {
                 data   = (uint8_t *)pgm_read_word(&colData[x]);
@@ -130,7 +125,12 @@ int main(void)
             //fft_execute(bfly_buff);          // Process complex data
             //fft_output(bfly_buff, spectrum); // Complex -> spectrum
         }
+    
+        
+        lcd_goto_xy(0,0);
+        printf("ADC:%ld", global_adc_counter);
 
+        
         if (display_shapes)
           test_shapes();
 
@@ -209,6 +209,19 @@ void print_adc_vals(void)
 void init_adc(void)
 {
     set_analog_mode(MODE_10_BIT);    // 8-bit analog-to-digital conversions
+    
+    
+    ADMUX = (1 << REFS0);
+    //ADSC
+    //23.4 Page 237
+    //A single conversion is started by writing a logical one to the ADC Start Conversion bit, ADSC. This bit stays high as long as the conversion is in progress and will be cleared by hardware when the conversion is completed.
+    //23.9.2 Page 250
+    //7 ADEN, 6 ADSC, 5 ADATE, 4 ADIF, 3 ADIE, 2 ADPS2, 1 ADPS1 0 ADPS0
+    ADCSRA = (1 << ADEN) | (1 << ADSC) | (1 << ADATE) | (0 << ADIF) | (1 << ADIE) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
+    
+    ADCSRB = 0;                // Free run mode, no high MUX bit
+    DIDR0 = (1 << ADC0D);
+    TIMSK0 = 0;                // Timer0 off
 }
 
 // INTERRUPT HANDLER for reading the ADC
@@ -254,3 +267,10 @@ ISR(TIMER0_COMPA_vect)
         samples++;
     }
 }
+
+ISR(ADC_vect) {
+    
+    global_adc_counter++;
+    
+}
+
