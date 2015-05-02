@@ -49,6 +49,13 @@ volatile long global_adc_counter = 0;
 tCaptureBank  mBank = BANK1;
 unsigned char samples = 0;
 
+// spectrum downsample data
+#define FFT_BINS 8
+#define PAST_NUM 10
+uint16_t nowSpectrum[FFT_BINS];
+uint16_t pastSpectrum[FFT_BINS][PAST_NUM];
+uint16_t avgSpectrum[FFT_BINS];
+
 #ifndef FIX_FFT
 int16_t       capture1[FFT_N];
 int16_t       capture2[FFT_N];
@@ -58,7 +65,7 @@ uint16_t      spectrum[FFT_N/2]; // Spectrum output buffer
 #else
 int8_t       capture1[FFT_N];
 int8_t       capture2[FFT_N];
-int8_t       bfly_buff[FFT_N];  // FFT "butterfly" buffer
+int8_t         bfly_buff[FFT_N];  // FFT "butterfly" buffer
 int8_t       spectrum[FFT_N/2]; // Spectrum output buffer
 #endif
 
@@ -100,35 +107,45 @@ int main(void)
             printAdc = 0;
             
             if(mBank == BANK2){
-                //fft_input(capture1, bfly_buff);   // Samples -> complex #s
-                fix_fft(bfly_buff, capture1, 7, 0);
+                fix_fft((char*)bfly_buff, (char*)capture1, 7, 0);
             }
             else{
-                //fft_input(capture2, bfly_buff);   // Samples -> complex #s
-                fix_fft(bfly_buff, capture2, 7, 0);
+                fix_fft((char*)bfly_buff, (char*)capture2, 7, 0);
             }
             print_adc_vals();
          
-              // Downsample spectrum output to 8 columns:
-            /*for(x=0; x<8; x++) {
-                data   = (uint8_t *)pgm_read_word(&colData[x]);
-                nBins  = pgm_read_byte(&data[0]) + 2;
-                binNum = pgm_read_byte(&data[1]);
-                for(sum=0, i=2; i<nBins; i++)
-                    sum += spectrum[binNum++] * pgm_read_byte(&data[i]); // Weighted
-                col[x][colCount] = sum / colDiv[x];                    // Average
-                minLvl = maxLvl = col[x][0];
-                for(i=1; i<10; i++) { // Get range of prior 10 frames
-                    if(col[x][i] < minLvl)      minLvl = col[x][i];
-                    else if(col[x][i] > maxLvl) maxLvl = col[x][i];
-            }*/
+            // Downsample spectrum output to 8 columns:
+            volatile int x = 0;
+            uint16_t sum;
+            int i;
+            int samplesPerBin;
+            for(x=0; x<FFT_BINS; x++) {
+                sum = 0;
+                samplesPerBin = FFT_N/FFT_BINS;
+                for(i=0; i<samplesPerBin; i++)
+                    sum += abs(bfly_buff[(x*samplesPerBin)+i]);
+                nowSpectrum[x] = sum;
+                // Shift the data in the history buffer
+                for (i=0; i<PAST_NUM-1; i++)
+                {
+                    pastSpectrum[x][i] = pastSpectrum[x][i+1];
+                }
+                pastSpectrum[x][PAST_NUM-1] = sum;
+                // Average the data in the past array
+                for(i=0;i<PAST_NUM;i++){
+                    avgSpectrum[x] += pastSpectrum[x][i];
+                }
+                avgSpectrum[x] = avgSpectrum[x]/PAST_NUM;   
+            }
             //fft_execute(bfly_buff);          // Process complex data
             //fft_output(bfly_buff, spectrum); // Complex -> spectrum
         }
     
+        // Pass avgSpectrum into the LED bar update
         
-        lcd_goto_xy(0,0);
-        printf("ADC:%ld", global_adc_counter);
+        
+        //lcd_goto_xy(0,0);
+        //printf("ADC:%ld", global_adc_counter);
 
         
         if (display_shapes)
@@ -236,7 +253,7 @@ ISR(TIMER0_COMPA_vect)
         sample -= 512; // Sign-convert for FFT; -512 to +511
 
 #ifdef FIX_FFT
-    sample = (int8_t)(sample / 2);
+    sample = (int8_t)(sample / 8);
 #endif
     // Dump the data into the active bank
     switch(mBank){
