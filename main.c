@@ -141,6 +141,7 @@ int main(void)
             //fft_output(bfly_buff, spectrum); // Complex -> spectrum
         }
     
+        print_adc_vals();
         // Pass avgSpectrum into the LED bar update
         
         
@@ -190,7 +191,7 @@ void print_adc_vals(void)
 
     // View the spectrum data
     length = snprintf( tempBuffer, 64, "%d,%d,%d,%d,%d,%d,%d,%d,"
-                                       "%d,%d,%d,%d,%d,%d,%d,%d,",
+                                       "%d,%d,%d,%d,%d,%d,%d,%d\r\n",
                   nowSpectrum[0], avgSpectrum[0],
                   nowSpectrum[1], avgSpectrum[1],
                   nowSpectrum[2], avgSpectrum[2],
@@ -242,7 +243,7 @@ void init_adc(void)
     set_analog_mode(MODE_10_BIT);    // 8-bit analog-to-digital conversions
     
     
-    ADMUX = (1 << REFS0);
+/*    ADMUX = (1 << REFS0);
     //ADSC
     //23.4 Page 237
     //A single conversion is started by writing a logical one to the ADC Start Conversion bit, ADSC. This bit stays high as long as the conversion is in progress and will be cleared by hardware when the conversion is completed.
@@ -252,7 +253,7 @@ void init_adc(void)
     
     ADCSRB = 0;                // Free run mode, no high MUX bit
     DIDR0 = (1 << ADC0D);
-    TIMSK0 = 0;                // Timer0 off
+    TIMSK0 = 0;                // Timer0 off*/
 }
 
 // INTERRUPT HANDLER for reading the ADC
