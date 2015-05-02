@@ -65,7 +65,7 @@ uint16_t      spectrum[FFT_N/2]; // Spectrum output buffer
 #else
 int8_t       capture1[FFT_N];
 int8_t       capture2[FFT_N];
-int8_t         bfly_buff[FFT_N];  // FFT "butterfly" buffer
+int8_t       bfly_buff[FFT_N];  // FFT "butterfly" buffer
 int8_t       spectrum[FFT_N/2]; // Spectrum output buffer
 #endif
 
@@ -188,6 +188,20 @@ void print_adc_vals(void)
     //print_usb(tempBuffer, length);
     //wait_for_sending_to_finish();
 
+    // View the spectrum data
+    length = snprintf( tempBuffer, 64, "%d,%d,%d,%d,%d,%d,%d,%d,"
+                                       "%d,%d,%d,%d,%d,%d,%d,%d,",
+                  nowSpectrum[0], avgSpectrum[0],
+                  nowSpectrum[1], avgSpectrum[1],
+                  nowSpectrum[2], avgSpectrum[2],
+                  nowSpectrum[3], avgSpectrum[3],
+                  nowSpectrum[4], avgSpectrum[4],
+                  nowSpectrum[5], avgSpectrum[5],
+                  nowSpectrum[6], avgSpectrum[6],
+                  nowSpectrum[7], avgSpectrum[7]);
+    print_usb(tempBuffer, length);
+    wait_for_sending_to_finish();
+/*    
     // View the current values in the array
     for(i = 0; i < FFT_N; i+=5)
     {
@@ -219,7 +233,7 @@ void print_adc_vals(void)
         print_usb(tempBuffer, length);
         wait_for_sending_to_finish();
     }
-
+*/
 }
 
 
